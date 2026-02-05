@@ -9,3 +9,4 @@ whitenoise
 boto3
 drf-yasg
 black
+djangorestframework-simplejwt
