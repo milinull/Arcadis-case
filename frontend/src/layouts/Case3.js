@@ -2,9 +2,9 @@ import React from "react";
 import { useLocation, Route, Routes, Navigate } from "react-router-dom";
 import { Container } from "reactstrap";
 import Sidebar from "components/Sidebar/Sidebar.js";
-import routes from "../routes.js";
+import routes from "routes.js";
 
-const Case2Layout = (props) => {
+const Case3Layout = (props) => {
   const mainContent = React.useRef(null);
   const location = useLocation();
 
@@ -16,8 +16,7 @@ const Case2Layout = (props) => {
 
   const getRoutes = (routes) => {
     return routes.map((prop, key) => {
-      // Filtra apenas as rotas que pertencem ao layout case2
-      if (prop.layout === "/case2") {
+      if (prop.layout === "/case3") {
         return (
           <Route path={prop.path} element={prop.component} key={key} exact />
         );
@@ -33,7 +32,7 @@ const Case2Layout = (props) => {
         {...props}
         routes={routes}
         logo={{
-          innerLink: "/case2/index",
+          innerLink: "/case3/index",
           imgSrc: require("../assets/img/brand/Arcadis-Color-Case-Study.png"),
           imgAlt: "...",
         }}
@@ -41,7 +40,7 @@ const Case2Layout = (props) => {
       <div className="main-content" ref={mainContent}>
         <Routes>
           {getRoutes(routes)}
-          <Route path="*" element={<Navigate to="/case2/index" replace />} />
+          <Route path="*" element={<Navigate to="/case3/index" replace />} />
         </Routes>
         <Container fluid></Container>
       </div>
@@ -49,4 +48,4 @@ const Case2Layout = (props) => {
   );
 };
 
-export default Case2Layout;
+export default Case3Layout;

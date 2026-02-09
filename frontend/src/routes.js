@@ -1,20 +1,20 @@
-import Index from "views/Index.js";
-import Case1 from "views/Case1.js";
+import Case2 from "views/Case2.js";
+import Case3 from "views/Case3.js";
 
 var routes = [
   {
     path: "/index",
     name: "Risk Analytics",
     icon: "ni ni-chart-bar-32 text-orange",
-    component: <Index />,
+    component: <Case2 />,
     layout: "/case2",
   },
   {
-    path: "/case1",
-    name: "Case 1",
-    icon: "ni ni-spaceship text-blue",
-    component: <Case1 />,
-    layout: "/case2",
+    path: "/index",
+    name: "Upload Excel",
+    icon: "ni ni-cloud-upload-96 text-green",
+    component: <Case3 />,
+    layout: "/case3",
   },
 ];
 export default routes;

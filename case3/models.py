@@ -4,7 +4,7 @@ from django.db import models
 class DadosColetados(models.Model):
 
     # Colunas do banco (Tabela dados_coletados)
-    id = models.IntegerField(primary_key=True)
+    id = models.AutoField(primary_key=True)
     sys_loc_code = models.CharField(max_length=100)
     param_code = models.CharField(max_length=50)
     param_value = models.JSONField()

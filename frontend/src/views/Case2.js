@@ -5,7 +5,7 @@ import { Container, Row, Col } from "reactstrap";
 import Header from "components/Headers/Header.js";
 import PageVisitsTable from "components/PageVisitsTable.js";
 
-const Index = (props) => {
+const Case2 = (props) => {
   return (
     <>
       <Header />
@@ -20,4 +20,4 @@ const Index = (props) => {
   );
 };
 
-export default Index;
+export default Case2;

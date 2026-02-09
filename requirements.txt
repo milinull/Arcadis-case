@@ -12,3 +12,4 @@ black
 djangorestframework-simplejwt
 xlsxwriter
 pandas
+openpyxl
