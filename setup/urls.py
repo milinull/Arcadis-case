@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.http import JsonResponse
 from django.urls import path, include, re_path
 from rest_framework import permissions
 from drf_yasg.views import get_schema_view
@@ -9,18 +10,31 @@ from drf_yasg import openapi
 #     TokenRefreshView,
 # )
 
+def api_root(request):
+    return JsonResponse({
+        "case1": "http://35.175.150.159:8000/api/case1/",
+        "case2": "http://35.175.150.159:8000/api/case2/",
+        "case3": "http://35.175.150.159:8000/api/case3/",
+    })
+
 schema_view = get_schema_view(
     openapi.Info(
-        title="API Case 2 - Processos de Tratamento de dados",
+        title="API Arcadis - Processamento de Dados",
         default_version="v1",
-        description="Documentação da API Case 2",
+        description="""
+        Documentação unificada das APIs de automação:
+        
+        * **Case 1**: Extração de dados químicos de PDF
+        * **Case 2**: Análise de Risco Ambiental (Excel)
+        * **Case 3**: Padronização e Conversão de Dados (Excel)
+        """,
     ),
     public=True,
     permission_classes=(permissions.AllowAny,),
 )
 
 urlpatterns = [
-    path("api/"),
+    path("api/", api_root),
     path("admin/", admin.site.urls),
     path("api/case1/", include("case1.urls")),
     path("api/case2/", include("case2.urls")),
