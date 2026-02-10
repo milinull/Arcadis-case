@@ -1,36 +1,86 @@
+import pandas as pd
+import numpy as np
 import io
 import xlsxwriter
 
+def processar_dataframe(file_obj):
+    df = pd.read_excel(file_obj, sheet_name="Avaliacao_Risco_Case")
+    df2 = pd.read_excel(file_obj, sheet_name="Valores_orientadores")
 
-def gerar_relatorio_excel(queryset):
-    # Processamento dados
-    dados_organizados = {}
-    for item in queryset:
-        chave = (item.cas, item.nome)
-        if chave not in dados_organizados:
-            dados_organizados[chave] = {
-                "C": {"solubilidade": "-", "dados": {}},
-                "NC": {"solubilidade": "-", "dados": {}},
-                "vor_consolidado": "-",
-                "valor_vor_consolidado": "-",
-            }
+    # Limpeza de colunas/linhas
+    df = df.drop(index=range(6))
+    df = df.drop(columns=df.columns[0])
 
-        # Atualiza dados por efeito (C/NC)
-        if item.efeito in ["C", "NC"]:
-            d = dados_organizados[chave][item.efeito]
-            d["solubilidade"] = item.solu_concentracao or d["solubilidade"]
-            d["dados"][item.ambiente] = item
+    # Renomear
+    df = df.rename(
+        columns={
+            "Unnamed: 1": "CAS",
+            "CONCENTRAÇÕES MÁXIMAS ACEITÁVEIS PARA ÁGUA SUBTERRÂNEA": "AMBIENTES ABERTOS",
+            "Unnamed: 5": "AMBIENTES FECHADOS",
+        }
+    )
 
-            if item.vor and item.vor != "-":
-                dados_organizados[chave]["vor_consolidado"] = item.vor
-                dados_organizados[chave]["valor_vor_consolidado"] = item.valor_vor
+    # Preencher linhas
+    fill = ["CAS", "CONTAMINANTE"]
+    df[fill] = df[fill].ffill()
 
-    # Config
+    # Unir tabelas
+    df = df.merge(
+        df2[["CAS", "VOR", "Valor VOR (mg/l)"]],
+        left_on="CAS",
+        right_on="CAS",
+        how="left"
+    )
+
+    # Menor valor entre C e NC
+    colunas_cnc = ["AMBIENTES ABERTOS", "AMBIENTES FECHADOS"]
+    for col in colunas_cnc:
+        df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    df["_temp_min_linha"] = df[colunas_cnc].min(axis=1)
+    df["_temp_min_grupo"] = df.groupby("CAS")["_temp_min_linha"].transform("min")
+
+    df["MENOR VALOR FINAL"] = np.where(
+        df["_temp_min_grupo"] < df["Valor VOR (mg/l)"],
+        df["Valor VOR (mg/l)"],
+        df["_temp_min_grupo"]
+    )
+
+    df["MENOR VALOR FINAL"] = np.where(
+        df["_temp_min_linha"].notna(), 
+        df["MENOR VALOR FINAL"], 
+        np.nan
+    )
+
+    df["Concentração de solubilidade"] = 500
+
+    # Comparação entre valores
+    cols_comp = ["MENOR VALOR FINAL", "Valor VOR (mg/l)", "Concentração de solubilidade"]
+    for col in cols_comp:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+    # Cor Cinza - True se: Menor Valor > Solubilidade (500)
+    df["Cinza"] = df["MENOR VALOR FINAL"] > df["Concentração de solubilidade"]
+
+    # Cor Laranja - True se: Menor Valor < Valor VOR
+    df["Laranja"] = df["_temp_min_grupo"] < df["Valor VOR (mg/l)"]
+
+    # Limpeza das colunas temporárias
+    df = df.drop(columns=["_temp_min_linha", "_temp_min_grupo"])
+
+    # Remover NaN
+    df = df.fillna("-")
+
+    return df
+
+
+def gerar_relatorio_excel(df):
     output = io.BytesIO()
     wb = xlsxwriter.Workbook(output, {"in_memory": True})
     ws = wb.add_worksheet("Relatório Consolidado")
 
-    # Estilos
+    # Configuração de estilos base
     estilo_base = {
         "font_name": "Calibri",
         "font_size": 11,
@@ -38,217 +88,111 @@ def gerar_relatorio_excel(queryset):
         "valign": "vcenter",
         "text_wrap": True,
     }
+    
+    estilo_topo = wb.add_format({**estilo_base, "bold": True, "bg_color": "#e76a25", "font_color": "#FFFFFF", "border": 1})
+    estilo_colunas = wb.add_format({**estilo_base, "bold": True, "bottom": 2, "bottom_color": "#e76a25", "border": 1, "border_color": "#E8E8E8"})
+    
+    # Formatos de dados
+    padrao = wb.add_format({**estilo_base, "border": 1, "border_color": "#E8E8E8"})
+    numero = wb.add_format({**estilo_base, "border": 1, "border_color": "#E8E8E8", "num_format": "0.00E+00"})
+    
+    # Cores condicionais
+    estilo_vor_laranja = wb.add_format({**estilo_base, "bg_color": "#FFC299", "bold": True, "border": 1, "num_format": "0.00"})
+    estilo_cinza = wb.add_format({**estilo_base, "bg_color": "#D3D3D3", "bold": True, "border": 1, "num_format": "0.00E+00"})
 
-    # Cabeçalhos
-    estilo_topo = wb.add_format(
-        {
-            **estilo_base,
-            "bold": True,
-            "bg_color": "#e76a25",
-            "font_color": "#FFFFFF",
-            "border": 1,
-        }
-    )
-    estilo_via = wb.add_format(
-        {
-            **estilo_base,
-            "bold": True,
-            "bottom": 1,
-            "bottom_color": "#e76a25",
-            "top": 1,
-            "top_color": "#E8E8E8",
-            "left": 1,
-            "left_color": "#E8E8E8",
-            "right": 1,
-            "right_color": "#E8E8E8",
-        }
-    )
-    estilo_colunas = wb.add_format(
-        {
-            **estilo_base,
-            "bold": True,
-            "bottom": 2,
-            "bottom_color": "#e76a25",
-            "top": 1,
-            "top_color": "#E8E8E8",
-            "left": 1,
-            "left_color": "#E8E8E8",
-            "right": 1,
-            "right_color": "#E8E8E8",
-        }
-    )
-
-    # Formatos de Célula
-    estilos_dados = {
-        "padrao": wb.add_format(
-            {**estilo_base, "border": 1, "border_color": "#E8E8E8"}
-        ),
-        "numero": wb.add_format(
-            {
-                **estilo_base,
-                "border": 1,
-                "border_color": "#E8E8E8",
-                "num_format": "0.00E+00",
-            }
-        ),
-        "laranja": wb.add_format(
-            {
-                **estilo_base,
-                "bg_color": "#FFC299",
-                "bold": True,
-                "border": 1,
-                "num_format": "0.00E+00",
-            }
-        ),
-        "cinza": wb.add_format(
-            {
-                **estilo_base,
-                "bg_color": "#D3D3D3",
-                "bold": True,
-                "border": 1,
-                "num_format": "0.00E+00",
-            }
-        ),
-    }
-
-    # Layout
-    ws.merge_range(
-        "G1:J2", "MÁXIMAS ACEITÁVEIS PARA ÁGUA\nNO PONTO DE EXPOSIÇÃO", estilo_topo
-    )
-    ws.merge_range("G3:J3", "VIA DE EXPOSIÇÃO: INALAÇÃO", estilo_via)
+    # Cabeçalho
+    ws.merge_range("G1:J2", "MÁXIMAS ACEITÁVEIS PARA ÁGUA\nNO PONTO DE EXPOSIÇÃO", estilo_topo)
+    ws.merge_range("G3:J3", "VIA DE EXPOSIÇÃO: INALAÇÃO", estilo_topo)
     ws.merge_range("G4:H4", "AMBIENTE ABERTO", estilo_topo)
     ws.merge_range("I4:J4", "AMBIENTE FECHADO", estilo_topo)
 
-    titulos = [
-        "CAS Nº",
-        "CONTAMINANTE",
-        "FONTE VOR",
-        "VALOR VOR",
-        "SOLUBILIDADE",
-        "EFEITO",
-    ]
+    titulos = ["CAS", "CONTAMINANTE", "FONTE VOR", "VALOR VOR", "SOLUBILIDADE", "EFEITO"]
     for col, texto in enumerate(titulos):
         ws.merge_range(0, col, 4, col, texto, estilo_colunas)
 
-    sub_titulos = [
-        "CONC. MÁX\n(mg/L)",
-        "VALOR CONSIDERADO\n(mg/L)",
-        "CONC. MÁX\n(mg/L)",
-        "VALOR CONSIDERADO\n(mg/L)",
-    ]
+    sub_titulos = ["CONC. MÁX\n(mg/L)", "VALOR CONSIDERADO\n(mg/L)", "CONC. MÁX\n(mg/L)", "VALOR CONSIDERADO\n(mg/L)"]
     for i, texto in enumerate(sub_titulos):
         ws.write(4, 6 + i, texto, estilo_colunas)
 
-    # Linhas
-    linha_atual = 5
-    for (cas, nome), info in dados_organizados.items():
-        # Lógica de cor para o Bloco VOR
-        tem_alerta = any(
-            getattr(a, "aplicar_laranja", False)
-            for e in ["C", "NC"]
-            for a in info[e]["dados"].values()
-        )
-        estilo_vor = estilos_dados["laranja"] if tem_alerta else estilos_dados["numero"]
+    # Prepara dados para agrupamento
+    df_group = df.fillna("-")
+    grupos = df_group.groupby(["CAS", "CONTAMINANTE", "VOR", "Valor VOR (mg/l)"], sort=False)
 
-        # Escreve colunas fixas (Mesclando 2 linhas por substância)
-        ws.merge_range(linha_atual, 0, linha_atual + 1, 0, cas, estilos_dados["padrao"])
-        ws.merge_range(
-            linha_atual, 1, linha_atual + 1, 1, nome, estilos_dados["padrao"]
-        )
-        ws.merge_range(
-            linha_atual,
-            2,
-            linha_atual + 1,
-            2,
-            info["vor_consolidado"],
-            estilos_dados["padrao"],
-        )
+    linha = 5
 
-        val_vor = info["valor_vor_consolidado"]
-        ws.merge_range(
-            linha_atual,
-            3,
-            linha_atual + 1,
-            3,
-            float(val_vor) if val_vor != "-" else "-",
-            estilo_vor,
-        )
+    for (cas, nome, fonte_vor, valor_vor), grupo in grupos:
+        n_linhas = len(grupo)
+        linha_fim = linha + n_linhas - 1
 
-        val_solubilidade = info["C"]["solubilidade"]
-        ws.merge_range(
-            linha_atual,
-            4,
-            linha_atual + 1,
-            4,
-            val_solubilidade,
-            estilos_dados["padrao"],
-        )
+        # Colunas fixas (mescladas)
+        if n_linhas > 1:
+            ws.merge_range(linha, 0, linha_fim, 0, cas, padrao)
+            ws.merge_range(linha, 1, linha_fim, 1, nome, padrao)
+            ws.merge_range(linha, 2, linha_fim, 2, fonte_vor, padrao)
+        else:
+            ws.write(linha, 0, cas, padrao)
+            ws.write(linha, 1, nome, padrao)
+            ws.write(linha, 2, fonte_vor, padrao)
 
-        # Detalhes de C e NC
-        for i, efeito in enumerate(["C", "NC"]):
-            detalhe = info[efeito]
-            ws.write(
-                linha_atual + i, 4, detalhe["solubilidade"], estilos_dados["padrao"]
-            )
-            ws.write(linha_atual + i, 5, efeito, estilos_dados["padrao"])
+        # Valor VOR com formatação laranja se aplicável
+        tem_alerta_laranja = grupo["Laranja"].any() if "Laranja" in grupo.columns else False
+        estilo_atual_vor = estilo_vor_laranja if tem_alerta_laranja else padrao
+        
+        try:
+            val_vor_num = float(valor_vor)
+        except:
+            val_vor_num = valor_vor
 
-            for col_idx, amb in enumerate(["Aberto", "Fechado"]):
-                obj = detalhe["dados"].get(amb)
-                val = (
-                    float(obj.concentracao_max) if obj and obj.concentracao_max else "-"
-                )
-                ws.write(
-                    linha_atual + i,
-                    6 + (col_idx * 2),
-                    val,
-                    estilos_dados["numero"] if val != "-" else estilos_dados["padrao"],
-                )
+        if n_linhas > 1:
+            ws.merge_range(linha, 3, linha_fim, 3, val_vor_num, estilo_atual_vor)
+        else:
+            ws.write(linha, 3, val_vor_num, estilo_atual_vor)
 
-        # Colunas de Valor Considerado (H e J)
-        for col_idx, amb in enumerate(["Aberto", "Fechado"]):
-            obj = info["C"]["dados"].get(amb) or info["NC"]["dados"].get(amb)
-            if obj:
-                estilo_cons = (
-                    estilos_dados["cinza"]
-                    if getattr(obj, "aplicar_cinza", False)
-                    else estilos_dados["numero"]
-                )
-                valor_cons = float(getattr(obj, "valor_considerado", 0))
-                ws.merge_range(
-                    linha_atual,
-                    7 + (col_idx * 2),
-                    linha_atual + 1,
-                    7 + (col_idx * 2),
-                    valor_cons,
-                    estilo_cons,
-                )
+        # Solubilidade
+        solubilidade = 500
+        if n_linhas > 1:
+            ws.merge_range(linha, 4, linha_fim, 4, solubilidade, padrao)
+        else:
+            ws.write(linha, 4, solubilidade, padrao)
+
+        # Linhas de detalhe
+        for idx, row in grupo.iterrows():
+            l_atual = linha + list(grupo.index).index(idx)
+            
+            # Coluna F: Efeito
+            ws.write(l_atual, 5, row["EFEITO"], padrao)
+
+            # Coluna G: Ambiente Aberto
+            val_aberto = row["AMBIENTES ABERTOS"]
+            ws.write(l_atual, 6, val_aberto if val_aberto != "-" else "-", numero if val_aberto != "-" else padrao)
+
+            # Coluna H: Valor Considerado
+            val_final = row["MENOR VALOR FINAL"]
+            eh_cinza = row["Cinza"] == True
+            
+            estilo_final = estilo_cinza if eh_cinza else numero
+            
+            if val_aberto != "-":
+                 ws.write(l_atual, 7, val_final, estilo_final)
             else:
-                ws.merge_range(
-                    linha_atual,
-                    7 + (col_idx * 2),
-                    linha_atual + 1,
-                    7 + (col_idx * 2),
-                    "-",
-                    estilos_dados["padrao"],
-                )
+                 ws.write(l_atual, 7, "-", padrao)
 
-        linha_atual += 2
+            # Coluna I: Ambiente Fechado
+            val_fechado = row["AMBIENTES FECHADOS"]
+            ws.write(l_atual, 8, val_fechado if val_fechado != "-" else "-", numero if val_fechado != "-" else padrao)
 
-    # Ajuste de Colunas
-    larguras = [15, 40, 15, 15, 18, 10, 20, 20, 20, 20]
+            # Coluna J: Valor Considerado
+            if val_fechado != "-":
+                 ws.write(l_atual, 9, val_final, estilo_final)
+            else:
+                 ws.write(l_atual, 9, "-", padrao)
+
+        linha += n_linhas
+
+    # Ajuste largura colunas
+    larguras = [15, 30, 15, 12, 12, 8, 15, 15, 15, 15]
     for i, w in enumerate(larguras):
         ws.set_column(i, i, w)
-
-    # Limpar células fora da tabela
-    fundo_branco = wb.add_format({"bg_color": "#FFFFFF", "border": 0})
-    max_linha = linha_atual - 1  # última linha usada
-    max_coluna = 9  # coluna J
-
-    for r in range(0, 50):
-        for c in range(0, 15):
-            # Só aplica se estiver fora da tabela
-            if r > max_linha or c > max_coluna:
-                ws.write(r, c, "", fundo_branco)
 
     wb.close()
     output.seek(0)

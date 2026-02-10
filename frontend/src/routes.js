@@ -1,7 +1,15 @@
+import Case1 from "views/Case1.js";
 import Case2 from "views/Case2.js";
 import Case3 from "views/Case3.js";
 
 var routes = [
+  {
+    path: "/index",
+    name: "Upload PDF",
+    icon: "ni ni-single-copy-04 text-red",
+    component: <Case1 />,
+    layout: "/case1",
+  },
   {
     path: "/index",
     name: "Risk Analytics",

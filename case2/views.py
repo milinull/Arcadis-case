@@ -1,60 +1,81 @@
-from rest_framework import viewsets, status
-from rest_framework.decorators import action
+from rest_framework import viewsets, views, status
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser
 from django.http import HttpResponse
+import pandas as pd
+import tempfile
+import os
 
-from .models import AnaliseProcess
-from .serializers import AnaliseProcessSerializer
-from .utils import gerar_relatorio_excel
+from .models import AvaliacaoRisco
+from .serializers import AvaliacaoRiscoSerializer
+from .utils import processar_dataframe, gerar_relatorio_excel
 
 
-class AnaliseProcessViewSet(viewsets.ModelViewSet):
+class AvaliacaoRiscoViewSet(viewsets.ModelViewSet):
     # Ordena pelo mais recente
-    queryset = AnaliseProcess.objects.all().order_by("id")
-    serializer_class = AnaliseProcessSerializer
+    queryset = AvaliacaoRisco.objects.all().order_by("id")
+    serializer_class = AvaliacaoRiscoSerializer
 
-    pagination_class = None
 
-    def create(self, request, *args, **kwargs):
-        is_many = isinstance(request.data, list)
-        serializer = self.get_serializer(data=request.data, many=is_many)
-        serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
-        return Response(
-            serializer.data, status=status.HTTP_201_CREATED, headers=headers
-        )
+class UploadRiskView(views.APIView):
+    parser_classes = (MultiPartParser, FormParser)
 
-    @action(detail=False, methods=["get"], url_path="exportar-excel")
-    def exportar_excel(self, request):
+    def post(self, request, *args, **kwargs):
+        file_obj = request.FILES.get('file')
+        
+        if not file_obj:
+            return Response({"error": "Nenhum arquivo enviado"}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Busca os dados do banco
-        dados = self.get_queryset()
+        # Salva arquivo temporário para leitura
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as tmp:
+            for chunk in file_obj.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
 
-        # Verifica se o frontend enviou uma lista de IDs (ex: ?ids=1,2,3)
-        ids_param = request.query_params.get("ids")
+        try:
+            # Processa o DataFrame
+            df = processar_dataframe(tmp_path)
 
-        if ids_param:
-            # Filtra apenas os IDs solicitados
-            ids_list = ids_param.split(",")
-            dados = dados.filter(id__in=ids_list)
+            # Prepara os dados para inserção no banco
+            df_banco = df.replace({pd.NA: None, float('nan'): None, "-": None})
+            
+            objetos_para_criar = []
+            for _, row in df_banco.iterrows():
+                obj = AvaliacaoRisco(
+                    cas=row.get("CAS"),
+                    contaminante=row.get("CONTAMINANTE"),
+                    efeito=row.get("EFEITO"),
+                    ambientes_abertos=row.get("AMBIENTES ABERTOS"),
+                    ambientes_fechados=row.get("AMBIENTES FECHADOS"),
+                    vor=row.get("VOR"),
+                    valor_vor=row.get("Valor VOR (mg/l)"),
+                    solubilidade=500,
+                    menor_valor_final=row.get("MENOR VALOR FINAL"),
+                    is_cinza=bool(row.get("Cinza", False)),
+                    is_laranja=bool(row.get("Laranja", False))
+                )
+                objetos_para_criar.append(obj)
+            
+            # Insere no banco
+            AvaliacaoRisco.objects.bulk_create(objetos_para_criar)
 
-        # Se não tiver dados (filtro vazio ou banco vazio), evita erro
-        if not dados.exists():
-            return Response(
-                {"detail": "Nenhum dado encontrado para exportação."},
-                status=status.HTTP_404_NOT_FOUND,
+            # Gera o Excel de retorno
+            excel_file = gerar_relatorio_excel(df)
+
+            response = HttpResponse(
+                excel_file.getvalue(),
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
             )
+            response['Content-Disposition'] = f'attachment; filename="Analise_Risco_{file_obj.name}"'
+            
+            return response
 
-        # Chama a engine de Excel (utils.py)
-        excel_file = gerar_relatorio_excel(dados)
-
-        # Retorna o arquivo
-        filename = "Relatorio_Analise.xlsx"
-        response = HttpResponse(
-            excel_file,
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
-
-        return response
+        except Exception as e:
+            return Response({
+                "error": str(e),
+                "type": type(e).__name__
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)

@@ -1,9 +1,9 @@
 import React, { useState, useRef } from "react";
 import { Card, CardHeader, Row, Alert } from "reactstrap";
 import axios from "axios";
-import "./UploadExcel.css";
+import "./UploadRisk.css";
 
-const UploadExcelComponent = () => {
+const UploadRiskComponent = () => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: null, msg: "" });
@@ -42,7 +42,7 @@ const UploadExcelComponent = () => {
   const handleDownloadExample = () => {
     // Link do Google Drive
     const driveLink =
-      "https://docs.google.com/spreadsheets/d/1Niyi0FKPU_AO1-vQvRH_ht0bDwsjdqC6/export?format=xlsx";
+      "https://docs.google.com/spreadsheets/d/1wFbeThEJuORoE3NnnjLwMgcywGVMZZAN/export?format=xlsx";
     window.open(driveLink, "_blank");
   };
 
@@ -54,7 +54,7 @@ const UploadExcelComponent = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/api/upload-excel/",
+        "http://localhost:8000/api/upload-risk/",
         formData,
         {
           responseType: "blob",
@@ -64,14 +64,21 @@ const UploadExcelComponent = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `processado_${file.name}`);
+      link.setAttribute("download", `Relatorio_Risco_${file.name}`);
       document.body.appendChild(link);
       link.click();
 
-      setStatus({ type: "success", msg: "Sucesso! Download iniciado." });
+      setStatus({
+        type: "success",
+        msg: "Processamento concluído! Download iniciado.",
+      });
       setFile(null);
     } catch (err) {
-      setStatus({ type: "danger", msg: "Erro no processamento." });
+      console.error(err);
+      setStatus({
+        type: "danger",
+        msg: "Erro ao processar a análise de risco.",
+      });
     } finally {
       setLoading(false);
     }
@@ -86,8 +93,8 @@ const UploadExcelComponent = () => {
       >
         <Row>
           <div className="col-12">
-            <h1 className="mb-0" style={{ color: "#28a745", fontSize: "24px" }}>
-              Conversão de Dados - Case 3
+            <h1 className="mb-0" style={{ color: "#e76a25", fontSize: "24px" }}>
+              Análise de Risco - Case 2
             </h1>
             <p
               className="mt-1 mb-0"
@@ -97,8 +104,8 @@ const UploadExcelComponent = () => {
                 fontWeight: "bold",
               }}
             >
-              Ferramenta para conversão automática de arquivos Excel para o
-              padrão Arcadis.
+              Ferramenta para análise automática de risco ambiental com base em
+              valores orientadores.
             </p>
             <p
               className="mt-2 mb-0"
@@ -108,19 +115,27 @@ const UploadExcelComponent = () => {
                 lineHeight: "1.5",
               }}
             >
-              Faça upload do arquivo Excel bruto e o sistema irá processar
-              automaticamente, convertendo os dados para o formato padronizado
-              da Arcadis.
+              Faça upload da planilha contendo as amostras e valores
+              orientadores. O sistema irá calcular automaticamente os riscos,
+              aplicar formatação condicional e gerar um relatório completo.
               <br />
               <br />
               <strong>Instruções:</strong>
               <br />
-              <span style={{ color: "#28a745" }}>• Formatos aceitos:</span>{" "}
+              <span style={{ color: "#e76a25" }}>• Formatos aceitos:</span>{" "}
               Arquivos .xlsx e .xls
               <br />
-              <span style={{ color: "#28a745" }}>• Processo:</span> Após o
-              upload, o arquivo será processado e um novo arquivo Excel será
-              gerado automaticamente para download.
+              <span style={{ color: "#e76a25" }}>• Processo:</span> O sistema
+              calcula o menor valor entre ambientes abertos/fechados, compara
+              com VOR e solubilidade, e aplica cores nas células (Laranja e
+              Cinza).
+              <br />
+              <span style={{ color: "#e65100" }}>• Célula Laranja:</span> Quando
+              o valor considerado é menor que o VOR.
+              <br />
+              <span style={{ color: "#607d8b" }}>• Célula Cinza:</span> Quando o
+              valor considerado ultrapassa a concentração de solubilidade (500
+              mg/L).
               <br />
               <br />
               <strong>Teste com arquivo de exemplo:</strong>
@@ -130,7 +145,7 @@ const UploadExcelComponent = () => {
                 style={{
                   background: "none",
                   border: "none",
-                  color: "#28a745",
+                  color: "#e76a25",
                   textDecoration: "underline",
                   fontWeight: "bold",
                   cursor: "pointer",
@@ -139,7 +154,7 @@ const UploadExcelComponent = () => {
                 }}
               >
                 <i className="fas fa-download mr-1"></i>
-                Baixar arquivo de exemplo (Case 3)
+                Baixar arquivo de exemplo (Case 2)
               </button>
             </p>
           </div>
@@ -187,9 +202,11 @@ const UploadExcelComponent = () => {
             {!file ? (
               <div className="upload-content">
                 <div className="upload-icon">
-                  <i className="fas fa-cloud-upload-alt"></i>
+                  <i className="fas fa-exclamation-triangle"></i>
                 </div>
-                <h3 className="upload-title">Arraste o arquivo aqui</h3>
+                <h3 className="upload-title">
+                  Arraste a planilha de risco aqui
+                </h3>
                 <p className="upload-subtitle">ou clique para selecionar</p>
                 <p className="upload-formats">Formatos: .xlsx, .xls</p>
               </div>
@@ -227,12 +244,12 @@ const UploadExcelComponent = () => {
                 {loading ? (
                   <>
                     <i className="fas fa-spinner fa-spin mr-2"></i>
-                    Processando...
+                    Calculando Riscos...
                   </>
                 ) : (
                   <>
                     <i className="fas fa-check mr-2"></i>
-                    Confirmar Processamento
+                    Gerar Relatório de Risco
                   </>
                 )}
               </button>
@@ -244,4 +261,4 @@ const UploadExcelComponent = () => {
   );
 };
 
-export default UploadExcelComponent;
+export default UploadRiskComponent;

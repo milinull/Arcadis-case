@@ -16,6 +16,7 @@ const Case3Layout = (props) => {
 
   const getRoutes = (routes) => {
     return routes.map((prop, key) => {
+      // Filtra apenas as rotas que pertencem ao layout do case3
       if (prop.layout === "/case3") {
         return (
           <Route path={prop.path} element={prop.component} key={key} exact />

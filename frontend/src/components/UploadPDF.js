@@ -1,9 +1,9 @@
 import React, { useState, useRef } from "react";
 import { Card, CardHeader, Row, Alert } from "reactstrap";
 import axios from "axios";
-import "./UploadExcel.css";
+import "./UploadPDF.css";
 
-const UploadExcelComponent = () => {
+const UploadPDFComponent = () => {
   const [file, setFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: null, msg: "" });
@@ -11,11 +11,11 @@ const UploadExcelComponent = () => {
   const fileInputRef = useRef(null);
 
   const handleFile = (selectedFile) => {
-    if (selectedFile && selectedFile.name.match(/\.(xlsx|xls)$/)) {
+    if (selectedFile && selectedFile.name.toLowerCase().endsWith(".pdf")) {
       setFile(selectedFile);
       setStatus({ type: null, msg: "" });
     } else {
-      setStatus({ type: "danger", msg: "Apenas arquivos Excel (.xlsx, .xls)" });
+      setStatus({ type: "danger", msg: "Apenas arquivos PDF (.pdf)" });
     }
   };
 
@@ -42,7 +42,7 @@ const UploadExcelComponent = () => {
   const handleDownloadExample = () => {
     // Link do Google Drive
     const driveLink =
-      "https://docs.google.com/spreadsheets/d/1Niyi0FKPU_AO1-vQvRH_ht0bDwsjdqC6/export?format=xlsx";
+      "https://drive.google.com/uc?export=download&id=13pHvDem5fP9HM2n1D-Ny3f4BmX1wZMHO";
     window.open(driveLink, "_blank");
   };
 
@@ -54,7 +54,7 @@ const UploadExcelComponent = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/api/upload-excel/",
+        "http://localhost:8000/api/upload-pdf/",
         formData,
         {
           responseType: "blob",
@@ -64,14 +64,21 @@ const UploadExcelComponent = () => {
       const url = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", `processado_${file.name}`);
+      link.setAttribute(
+        "download",
+        `processado_${file.name.replace(".pdf", ".xlsx")}`,
+      );
       document.body.appendChild(link);
       link.click();
 
-      setStatus({ type: "success", msg: "Sucesso! Download iniciado." });
+      setStatus({
+        type: "success",
+        msg: "Sucesso! Dados salvos e download iniciado.",
+      });
       setFile(null);
     } catch (err) {
-      setStatus({ type: "danger", msg: "Erro no processamento." });
+      console.error(err);
+      setStatus({ type: "danger", msg: "Erro ao processar o PDF." });
     } finally {
       setLoading(false);
     }
@@ -86,8 +93,8 @@ const UploadExcelComponent = () => {
       >
         <Row>
           <div className="col-12">
-            <h1 className="mb-0" style={{ color: "#28a745", fontSize: "24px" }}>
-              Conversão de Dados - Case 3
+            <h1 className="mb-0" style={{ color: "#dc3545", fontSize: "24px" }}>
+              Extração de Dados PDF - Case 1
             </h1>
             <p
               className="mt-1 mb-0"
@@ -97,8 +104,8 @@ const UploadExcelComponent = () => {
                 fontWeight: "bold",
               }}
             >
-              Ferramenta para conversão automática de arquivos Excel para o
-              padrão Arcadis.
+              Ferramenta para extração automática de dados químicos de
+              relatórios em PDF.
             </p>
             <p
               className="mt-2 mb-0"
@@ -108,19 +115,19 @@ const UploadExcelComponent = () => {
                 lineHeight: "1.5",
               }}
             >
-              Faça upload do arquivo Excel bruto e o sistema irá processar
-              automaticamente, convertendo os dados para o formato padronizado
-              da Arcadis.
+              Faça upload do relatório em PDF contendo dados químicos e o
+              sistema irá extrair automaticamente as informações, gerando uma
+              planilha Excel estruturada.
               <br />
               <br />
               <strong>Instruções:</strong>
               <br />
-              <span style={{ color: "#28a745" }}>• Formatos aceitos:</span>{" "}
-              Arquivos .xlsx e .xls
+              <span style={{ color: "#dc3545" }}>• Formato aceito:</span>{" "}
+              Arquivos .pdf
               <br />
-              <span style={{ color: "#28a745" }}>• Processo:</span> Após o
-              upload, o arquivo será processado e um novo arquivo Excel será
-              gerado automaticamente para download.
+              <span style={{ color: "#dc3545" }}>• Processo:</span> O sistema
+              irá identificar e extrair dados químicos do PDF, salvando-os no
+              banco de dados e gerando um arquivo Excel para download.
               <br />
               <br />
               <strong>Teste com arquivo de exemplo:</strong>
@@ -130,7 +137,7 @@ const UploadExcelComponent = () => {
                 style={{
                   background: "none",
                   border: "none",
-                  color: "#28a745",
+                  color: "#dc3545",
                   textDecoration: "underline",
                   fontWeight: "bold",
                   cursor: "pointer",
@@ -139,7 +146,7 @@ const UploadExcelComponent = () => {
                 }}
               >
                 <i className="fas fa-download mr-1"></i>
-                Baixar arquivo de exemplo (Case 3)
+                Baixar arquivo de exemplo (Case 1)
               </button>
             </p>
           </div>
@@ -187,16 +194,16 @@ const UploadExcelComponent = () => {
             {!file ? (
               <div className="upload-content">
                 <div className="upload-icon">
-                  <i className="fas fa-cloud-upload-alt"></i>
+                  <i className="fas fa-file-pdf"></i>
                 </div>
-                <h3 className="upload-title">Arraste o arquivo aqui</h3>
+                <h3 className="upload-title">Arraste o arquivo PDF aqui</h3>
                 <p className="upload-subtitle">ou clique para selecionar</p>
-                <p className="upload-formats">Formatos: .xlsx, .xls</p>
+                <p className="upload-formats">Formato: .pdf</p>
               </div>
             ) : (
               <div className="file-preview">
                 <div className="file-icon">
-                  <i className="fas fa-file-excel"></i>
+                  <i className="fas fa-file-pdf"></i>
                 </div>
                 <div className="file-info">
                   <p className="file-name">{file.name}</p>
@@ -232,7 +239,7 @@ const UploadExcelComponent = () => {
                 ) : (
                   <>
                     <i className="fas fa-check mr-2"></i>
-                    Confirmar Processamento
+                    Confirmar Extração
                   </>
                 )}
               </button>
@@ -244,4 +251,4 @@ const UploadExcelComponent = () => {
   );
 };
 
-export default UploadExcelComponent;
+export default UploadPDFComponent;

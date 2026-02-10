@@ -3,16 +3,16 @@ import { Container, Row, Col } from "reactstrap";
 
 // core components
 import Header from "components/Headers/Header.js";
-import UploadRiskComponent from "components/UploadRisk.js";
+import UploadPDFComponent from "components/UploadPDF.js";
 
-const Case2 = () => {
+const Case1 = () => {
   return (
     <>
       <Header />
       <Container className="mt--7" fluid>
         <Row className="mt-5">
           <Col className="mb-5 mb-xl-0" xl="12">
-            <UploadRiskComponent />
+            <UploadPDFComponent />
           </Col>
         </Row>
       </Container>
@@ -20,4 +20,4 @@ const Case2 = () => {
   );
 };
 
-export default Case2;
+export default Case1;

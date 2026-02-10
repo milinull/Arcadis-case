@@ -1,8 +1,11 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from .views import AnaliseProcessViewSet
+from .views import AvaliacaoRiscoViewSet, UploadRiskView
 
 router = DefaultRouter()
-router.register(r"analise", AnaliseProcessViewSet)
+router.register(r'dados', AvaliacaoRiscoViewSet) 
 
-urlpatterns = [path("", include(router.urls))]
+urlpatterns = [
+    path("upload-risk/", UploadRiskView.as_view(), name="upload-risk"),
+    path("", include(router.urls)),
+]

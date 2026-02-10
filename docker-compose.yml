@@ -24,7 +24,7 @@ services:
     depends_on:
       - db
     environment:
-      DEBUG: ${DEBUG}
+      - DEBUG=${DEBUG}
 
   # Criação pgAdmin para visualizar o banco
   pgadmin:
