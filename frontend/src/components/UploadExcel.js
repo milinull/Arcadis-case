@@ -54,7 +54,7 @@ const UploadExcelComponent = () => {
 
     try {
       const response = await axios.post(
-        "http://localhost:8000/api/upload-excel/",
+        "http://localhost:8000/api/case3/upload-excel/",
         formData,
         {
           responseType: "blob",
