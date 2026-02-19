@@ -15,8 +15,8 @@ CREATE TABLE case2.avaliacao_risco (
     is_laranja BOOLEAN
 );
 
-TRUNCATE TABLE case2.avaliacao_risco;
+-- TRUNCATE TABLE case2.avaliacao_risco;
 
-SELECT * FROM case2.avaliacao_risco;
+-- SELECT * FROM case2.avaliacao_risco;
 
-ALTER ROLE postgres SET search_path = case1,case2,case3,public;
+-- ALTER ROLE postgres SET search_path = case1,case2,case3,public;

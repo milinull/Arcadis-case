@@ -12,6 +12,6 @@ CREATE TABLE case1.resultados_amostras (
 	limite_quant INTEGER
 );
 
-TRUNCATE TABLE case1.resultados_amostras;
+-- TRUNCATE TABLE case1.resultados_amostras;
 
-SELECT * FROM case1.resultados_amostras;
+-- SELECT * FROM case1.resultados_amostras;

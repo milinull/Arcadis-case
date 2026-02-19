@@ -12,6 +12,6 @@ CREATE TABLE case3.dados_coletados (
 	task_code VARCHAR(250)
 );
 
-TRUNCATE TABLE case3.dados_coletados;
+-- TRUNCATE TABLE case3.dados_coletados;
 
-SELECT * FROM case3.dados_coletados;
+-- SELECT * FROM case3.dados_coletados;

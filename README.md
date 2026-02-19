@@ -156,6 +156,8 @@ Entre com as seguintes credenciais:
 
 > **Importante**: Todas as informações precisam ser as mesmas do `docker-compose.yml` e do arquivo `.env`
 
+> Após a criação dos Schemas e Tabelas é necessário rodar o seguinte comando dentro do banco: `ALTER ROLE postgres SET search_path = case1,case2,case3,public;`
+
 #### Ambiente Local
 
 | Aplicação      | URL                             | Descrição                 |
