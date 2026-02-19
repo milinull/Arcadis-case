@@ -15,7 +15,13 @@
 
 **Plataforma integrada de processamento de dados ambientais e químicos**
 
-[Deploy Online](#-deploy-online) • [Visão Geral](#-visão-geral) • [Arquitetura](#️-arquitetura) • [Instalação](#-instalação) • [Casos de Uso](#-casos-de-uso) • [API](#-documentação-da-api) • [Tecnologias](#-stack-tecnológico)
+[Deploy Online](#deploy-online) • 
+[Visão Geral](#visão-geral) • 
+[Fluxo de Dados](#fluxo-de-dados) • 
+[Instalação](#instalação) • 
+[Cases](#cases) • 
+[Documentação da API](#documentação-da-api) • 
+[Stack Tecnológico](#stack-tecnológico)
 
 </div>
 
