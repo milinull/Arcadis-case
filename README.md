@@ -84,6 +84,8 @@ cd Arcadis-case
 docker-compose up --build
 ```
 
+> $\displaystyle \approx 5$ minutos para iniciar o container
+
 ### Opção 2: Instalação Manual
 
 #### Backend (Django)
@@ -154,9 +156,19 @@ Entre com as seguintes credenciais:
 | **Password**             | `1750`     |
 | **Maintenance database** | `Job_case` |
 
-> **Importante**: Todas as informações precisam ser as mesmas do `docker-compose.yml` e do arquivo `.env`
+#### Criar Schemas e Tabelas a partir dos arquivos do diretório `sql`
 
-> Após a criação dos Schemas e Tabelas é necessário rodar o seguinte comando dentro do banco: `ALTER ROLE postgres SET search_path = case1,case2,case3,public;`
+1. No **pgAdmin**, expanda o servidor registrado.
+2. Acesse o banco de dados **`Job_case`**.
+3. Clique com o botão direito em **Query Tool**.
+4. Abra os arquivos `.sql` localizados no diretório `sql` do projeto.
+5. Execute os scripts na ordem definida.
+6. Verifique se os **schemas** e as **tabelas** foram criados corretamente em:
+
+   * **Databases** > **Job_case** > **Schemas**
+7. Após a criação dos Schemas e Tabelas é necessário rodar o seguinte comando dentro do banco: `ALTER ROLE postgres SET search_path = case1,case2,case3,public;`
+
+> **Importante**: Todas as informações precisam ser as mesmas do `docker-compose.yml` e do arquivo `.env`
 
 #### Ambiente Local
 
