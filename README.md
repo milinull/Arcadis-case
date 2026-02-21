@@ -92,7 +92,7 @@ docker-compose up --build
 
 > $\displaystyle \approx 5$ minutos para iniciar o container
 
-### Opção 2: Instalação Manual
+### Opção 2: Instalação Manual (Necessário PostgreSQL instalado no sistema)
 
 #### Backend (Django)
 
